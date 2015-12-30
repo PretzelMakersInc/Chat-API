@@ -42,36 +42,7 @@ class Registration
   */
   public function checkCredentials()
   {
-    if (!$phone = $this->dissectPhone()) {
-        throw new Exception('The provided phone number is not valid.');
-    }
-
-    $countryCode = ($phone['ISO3166'] != '') ? $phone['ISO3166'] : 'US';
-    $langCode    = ($phone['ISO639'] != '') ? $phone['ISO639'] : 'en';
-
-    // Build the url.
-    $host  = 'https://' . Constants::WHATSAPP_CHECK_HOST;
-    $query = array(
-      'cc' => $phone['cc'],
-      'in' => $phone['phone'],
-      'lg' => $langCode,
-      'lc' => $countryCode,
-      'id' => $this->identity,
-      'mistyped' => '6',
-      'network_radio_type' => '1',
-      'simnum'  => '1',
-      's' => '',
-      'copiedrc' => '1',
-      'hasinrc' => '1',
-      'rcmatch' => '1',
-      'pid' => mt_rand(100, 9999),
-      //'rchash' => hash('sha256', openssl_random_pseudo_bytes(20)),
-      //'anhash' => md5(openssl_random_pseudo_bytes(20)),
-      'extexist' => '1',
-      'extstate' => '1'
-    );
-
-    $response = $this->getResponse($host, $query);
+    $response = $this->checkCredentialsSync();
 
     if ($response->status != 'ok') {
         $this->eventManager()->fire("onCredentialsBad",
@@ -103,6 +74,62 @@ class Registration
 
     return $response;
   }
+  
+  /**
+  * Check if account credentials are valid without firing events.
+  *
+  * NOTE: WhatsApp changes your password everytime you use this.
+  *       Make sure you update your config file if the output informs about
+  *       a password change.
+  *
+  * @return object
+  *   An object with server response.
+  *   - status: Account status.
+  *   - login: Phone number with country code.
+  *   - pw: Account password.
+  *   - type: Type of account.
+  *   - expiration: Expiration date in UNIX TimeStamp.
+  *   - kind: Kind of account.
+  *   - price: Formatted price of account.
+  *   - cost: Decimal amount of account.
+  *   - currency: Currency price of account.
+  *   - price_expiration: Price expiration in UNIX TimeStamp.
+  *
+  * @throws Exception
+  */
+  public function checkCredentialsSync()
+  {
+    if (!$phone = $this->dissectPhone()) {
+        throw new Exception('The provided phone number is not valid.');
+    }
+
+    $countryCode = ($phone['ISO3166'] != '') ? $phone['ISO3166'] : 'US';
+    $langCode    = ($phone['ISO639'] != '') ? $phone['ISO639'] : 'en';
+
+    // Build the url.
+    $host  = 'https://' . Constants::WHATSAPP_CHECK_HOST;
+    $query = array(
+      'cc' => $phone['cc'],
+      'in' => $phone['phone'],
+      'lg' => $langCode,
+      'lc' => $countryCode,
+      'id' => $this->identity,
+      'mistyped' => '6',
+      'network_radio_type' => '1',
+      'simnum'  => '1',
+      's' => '',
+      'copiedrc' => '1',
+      'hasinrc' => '1',
+      'rcmatch' => '1',
+      'pid' => mt_rand(100, 9999),
+      //'rchash' => hash('sha256', openssl_random_pseudo_bytes(20)),
+      //'anhash' => md5(openssl_random_pseudo_bytes(20)),
+      'extexist' => '1',
+      'extstate' => '1'
+    );
+
+    return $this->getResponse($host, $query);
+  }
 
   /**
   * Register account on WhatsApp using the provided code.
@@ -127,41 +154,7 @@ class Registration
   */
   public function codeRegister($code)
   {
-    if (!$phone = $this->dissectPhone()) {
-        throw new Exception('The provided phone number is not valid.');
-    }
-
-    $code = str_replace('-', '', $code);
-    //$countryCode = ($phone['ISO3166'] != '') ? $phone['ISO3166'] : 'US';
-    //$langCode    = ($phone['ISO639'] != '') ? $phone['ISO639'] : 'en';
-
-    // Build the url.
-    $host = 'https://' . Constants::WHATSAPP_REGISTER_HOST;
-    $query = array(
-      'cc' => $phone['cc'],
-      'in' => $phone['phone'],
-      'lg' => $langCode,
-      'lc' => $countryCode,
-      'id' => $this->identity,
-      'token' => $token,
-      'mistyped' => '6',
-      'network_radio_type' => '1',
-      'simnum'  => '1',
-      's' => '',
-      'copiedrc' => '1',
-      'hasinrc' => '1',
-      'rcmatch' => '1',
-      'pid' => mt_rand(100, 9999),
-      //'rchash' => hash('sha256', openssl_random_pseudo_bytes(20)),
-      //'anhash' => md5(openssl_random_pseudo_bytes(20)),
-      'extexist' => '1',
-      'extstate' => '1',
-      'method' => $method,
-      'code' => $code,
-    );
-
-    $response = $this->getResponse($host, $query);
-
+    $response = $this->codeRegisterSync($code);
 
     if ($response->status != 'ok') {
         $this->eventManager()->fire("onCodeRegisterFailed",
@@ -197,6 +190,65 @@ class Registration
 
     return $response;
   }
+  
+  /**
+  * Register account on WhatsApp using the provided code without firing events.
+  *
+  * @param integer $code
+  *   Numeric code value provided on requestCode().
+  *
+  * @return object
+  *   An object with server response.
+  *   - status: Account status.
+  *   - login: Phone number with country code.
+  *   - pw: Account password.
+  *   - type: Type of account.
+  *   - expiration: Expiration date in UNIX TimeStamp.
+  *   - kind: Kind of account.
+  *   - price: Formatted price of account.
+  *   - cost: Decimal amount of account.
+  *   - currency: Currency price of account.
+  *   - price_expiration: Price expiration in UNIX TimeStamp.
+  *
+  * @throws Exception
+  */
+  public function codeRegisterSync($code)
+  {
+    if (!$phone = $this->dissectPhone()) {
+        throw new Exception('The provided phone number is not valid.');
+    }
+
+    $code = str_replace('-', '', $code);
+    //$countryCode = ($phone['ISO3166'] != '') ? $phone['ISO3166'] : 'US';
+    //$langCode    = ($phone['ISO639'] != '') ? $phone['ISO639'] : 'en';
+
+    // Build the url.
+    $host = 'https://' . Constants::WHATSAPP_REGISTER_HOST;
+    $query = array(
+      'cc' => $phone['cc'],
+      'in' => $phone['phone'],
+      'lg' => $langCode,
+      'lc' => $countryCode,
+      'id' => $this->identity,
+      'token' => $token,
+      'mistyped' => '6',
+      'network_radio_type' => '1',
+      'simnum'  => '1',
+      's' => '',
+      'copiedrc' => '1',
+      'hasinrc' => '1',
+      'rcmatch' => '1',
+      'pid' => mt_rand(100, 9999),
+      //'rchash' => hash('sha256', openssl_random_pseudo_bytes(20)),
+      //'anhash' => md5(openssl_random_pseudo_bytes(20)),
+      'extexist' => '1',
+      'extstate' => '1',
+      'method' => $method,
+      'code' => $code,
+    );
+
+    return $this->getResponse($host, $query);
+  }
 
   /**
   * Request a registration code from WhatsApp.
@@ -217,54 +269,7 @@ class Registration
   */
   public function codeRequest($method = 'sms', $carrier = "T-Mobile5", $platform = 'Android')
   {
-    if (!$phone = $this->dissectPhone()) {
-        throw new Exception('The provided phone number is not valid.');
-    }
-
-    $countryCode = ($phone['ISO3166'] != '') ? $phone['ISO3166'] : 'US';
-    $langCode    = ($phone['ISO639'] != '') ? $phone['ISO639'] : 'en';
-
-    if ($carrier != null) {
-        $mnc = $this->detectMnc(strtolower($countryCode), $carrier);
-    } else {
-        $mnc = $phone['mnc'];
-    }
-
-    // Build the token.
-    $token = generateRequestToken($phone['country'], $phone['phone'], $platform);
-
-    // Build the url.
-    $host = 'https://' . Constants::WHATSAPP_REQUEST_HOST;
-    $query = array(
-        'cc' => $phone['cc'],
-        'in' => $phone['phone'],
-        'lg' => $langCode,
-        'lc' => $countryCode,
-        'id' => $this->identity,
-        'token' => $token,
-        'mistyped' => '6',
-        'network_radio_type' => '1',
-        'simnum'  => '1',
-        's' => '',
-        'copiedrc' => '1',
-        'hasinrc' => '1',
-        'rcmatch' => '1',
-        'pid' => mt_rand(100, 9999),
-        'rchash' => hash('sha256', openssl_random_pseudo_bytes(20)),
-        'anhash' => md5(openssl_random_pseudo_bytes(20)),
-        'extexist' => '1',
-        'extstate' => '1',
-        'mcc' => $phone['mcc'],
-        'mnc' => $mnc,
-        'sim_mcc' => $phone['mcc'],
-        'sim_mnc' => $mnc,
-        'method' => $method,
-        //'reason' => "self-send-jailbroken",
-    );
-
-    $this->debugPrint($query);
-
-    $response = $this->getResponse($host, $query);
+    $response = $this->codeRequestSync($method, $carrier, $platform);
 
     $this->debugPrint($response);
 
@@ -326,6 +331,77 @@ class Registration
 
     return $response;
   }
+  
+  /**
+  * Request a registration code from WhatsApp without firing events.
+  *
+  * @param string $method Accepts only 'sms' or 'voice' as a value.
+  * @param string $carrier
+  *
+  * @return object
+  *   An object with server response.
+  *   - status: Status of the request (sent/fail).
+  *   - length: Registration code lenght.
+  *   - method: Used method.
+  *   - reason: Reason of the status (e.g. too_recent/missing_param/bad_param).
+  *   - param: The missing_param/bad_param.
+  *   - retry_after: Waiting time before requesting a new code.
+  *
+  * @throws Exception
+  */
+  
+  public function codeRequestSync($method = 'sms', $carrier = "T-Mobile5", $platform = 'Android')
+  {
+    if (!$phone = $this->dissectPhone()) {
+        throw new Exception('The provided phone number is not valid.');
+    }
+
+    $countryCode = ($phone['ISO3166'] != '') ? $phone['ISO3166'] : 'US';
+    $langCode    = ($phone['ISO639'] != '') ? $phone['ISO639'] : 'en';
+
+    if ($carrier != null) {
+        $mnc = $this->detectMnc(strtolower($countryCode), $carrier);
+    } else {
+        $mnc = $phone['mnc'];
+    }
+
+    // Build the token.
+    $token = generateRequestToken($phone['country'], $phone['phone'], $platform);
+
+    // Build the url.
+    $host = 'https://' . Constants::WHATSAPP_REQUEST_HOST;
+    $query = array(
+        'cc' => $phone['cc'],
+        'in' => $phone['phone'],
+        'lg' => $langCode,
+        'lc' => $countryCode,
+        'id' => $this->identity,
+        'token' => $token,
+        'mistyped' => '6',
+        'network_radio_type' => '1',
+        'simnum'  => '1',
+        's' => '',
+        'copiedrc' => '1',
+        'hasinrc' => '1',
+        'rcmatch' => '1',
+        'pid' => mt_rand(100, 9999),
+        'rchash' => hash('sha256', openssl_random_pseudo_bytes(20)),
+        'anhash' => md5(openssl_random_pseudo_bytes(20)),
+        'extexist' => '1',
+        'extstate' => '1',
+        'mcc' => $phone['mcc'],
+        'mnc' => $mnc,
+        'sim_mcc' => $phone['mcc'],
+        'sim_mnc' => $mnc,
+        'method' => $method,
+        //'reason' => "self-send-jailbroken",
+    );
+
+    $this->debugPrint($query);
+
+    return $this->getResponse($host, $query);
+  }
+  
 
   /**
    * Get a decoded JSON response from Whatsapp server
